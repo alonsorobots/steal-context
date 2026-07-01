@@ -5,3 +5,6 @@ node_modules/
 # steal-context output artifacts
 .steal/
 .continues-handoff.md
+
+# Personal launch notes / marketing drafts — kept local, not public
+docs/launch/
