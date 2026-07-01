@@ -1,14 +1,29 @@
 # steal-context
 
 > Type **`/steal`** in one AI coding chat to pull the latest conversation context
-> from the **other** tool — e.g. Cursor (Claude Opus 4.8) ⇄ Kilo Code (GLM 5.2) — and
-> keep working without re-explaining anything.
+> from the **other** tool. In ~50 ms. Nothing leaves your machine.
 
 [![npm](https://img.shields.io/npm/v/steal-context.svg)](https://www.npmjs.com/package/steal-context)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
-`steal-context` gives you a real **`/steal` slash command** you run *inside* a live
-chat. It:
+## The problem this solves
+
+You pay for **Cursor** (Claude Opus 4.8 via Ultra) but you also want to use
+**GLM 5.2** — because it's cheap, has a huge context, and is often better for the
+grindy long-running work Opus is too expensive for. Cursor doesn't support GLM 5.2,
+so you use **Kilo Code + Fireworks.ai** for that.
+
+Now you're paying for two great agents, and every time you switch, you re-explain
+the entire task. The chats live in different apps and different storage formats
+(Cursor's JSONL, Kilo's SQLite), so there is no shared memory.
+
+`steal-context` fixes that in one command. Type `/steal` in Cursor to pull your
+latest Kilo/GLM session in; type `/steal` in Kilo to pull your latest Cursor/Opus
+session in. Same workspace, same task, different model — no re-explaining.
+
+## What it does
+
+Gives you a real **`/steal` slash command** you run *inside* a live chat. It:
 
 - always steals from the **other** tool automatically (direction is baked into each command),
 - finds the **latest session for the current project** and grabs a model-appropriate slice,

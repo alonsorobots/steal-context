@@ -1,6 +1,6 @@
 {
   "name": "steal-context",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Type /steal in one AI coding chat to pull the latest conversation context from the OTHER tool (e.g. Cursor <-> Kilo Code). A thin, model-aware UX layer on top of `continues`.",
   "type": "module",
   "bin": {
@@ -28,11 +28,23 @@
     "coding-agent",
     "cursor",
     "kilo-code",
+    "glm",
+    "glm-4-6",
+    "glm-5",
+    "glm-5-2",
+    "claude",
+    "claude-opus",
+    "opus-4",
+    "fireworks",
+    "fireworks-ai",
     "context",
+    "context-window",
     "handoff",
     "llm",
     "slash-command",
-    "continues"
+    "continues",
+    "mcp",
+    "developer-tools"
   ],
   "license": "MIT",
   "repository": {
