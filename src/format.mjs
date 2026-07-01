@@ -4,11 +4,15 @@
 //   { source, display, id, title, model, updatedAt: Date, directory,
 //     messages: [ { role, ts: Date|null, blocks: [ {kind, text?, tool?, input?} ] } ] }
 
+// Character budgets per message block, tuned for large-context frontier models
+// (Opus 4.8 ~200K tokens, GLM 5.2 ~128K). `verbose` is the default because these
+// models comfortably handle it and the extra tool-call detail is where useful
+// state actually lives. `standard` is a "quick nudge" option.
 export const PRESET_LIMITS = {
   minimal: { msgs: 6, tool: 200, reasoning: 300, text: 4000 },
-  standard: { msgs: 16, tool: 400, reasoning: 600, text: 8000 },
-  verbose: { msgs: 40, tool: 800, reasoning: 1200, text: 16000 },
-  full: { msgs: Infinity, tool: 4000, reasoning: 4000, text: 40000 },
+  standard: { msgs: 16, tool: 500, reasoning: 700, text: 8000 },
+  verbose: { msgs: 40, tool: 2000, reasoning: 2000, text: 20000 },
+  full: { msgs: Infinity, tool: 8000, reasoning: 4000, text: 60000 },
 };
 
 function truncate(s, n) {

@@ -90,12 +90,14 @@ steal-context init --a cursor --b cline
 
 `--preset` controls how much of the conversation comes across:
 
-| Preset | Messages | Good for |
-|---|---|---|
-| `minimal` | last 6 | quick nudge, tiny budget |
-| `standard` | last 16 | default |
-| `verbose` | last 40 | complex multi-file tasks |
-| `full` | everything | complete capture |
+| Preset | Messages | Tool-output cap | Good for |
+|---|---|---|---|
+| `minimal` | last 6 | 200 chars | quick nudge, tiny budget |
+| `standard` | last 16 | 500 chars | small handoffs |
+| `verbose` (default) | last 40 | 2000 chars | complex multi-file tasks — the sweet spot for Opus 4.8 / GLM 5.2 |
+| `full` | everything | 8000 chars | complete capture |
+
+**Why `verbose` is the default:** Opus 4.8 has ~200K tokens of context and GLM 5.2 has ~128K. Even a 40-message handoff with rich tool output only fills ~10–20% of that, leaving plenty of headroom for the receiving agent to actually work. Drop to `standard` if you just want a short reminder.
 
 ## Why not just use `continues`?
 

@@ -14,15 +14,10 @@ const DIRECT_READERS = {
   cursor: cursor,
 };
 
-function defaultPresetFor(toKey) {
-  switch (toKey) {
-    case "cursor":
-      return "standard";
-    case "kilo-code":
-      return "verbose";
-    default:
-      return "standard";
-  }
+// Large-context frontier models on both sides (Opus 4.8, GLM 5.2, etc.) easily
+// handle `verbose`. Users can override with --preset for smaller / larger.
+function defaultPresetFor(_toKey) {
+  return "verbose";
 }
 
 function banner({ session, fromTool, toTool, preset, engine }) {
