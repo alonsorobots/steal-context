@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { resolveTool } from "./tools.mjs";
@@ -43,7 +43,21 @@ export function installCommand({ toKey, fromKey, preset, runner, project = proce
 
   mkdirSync(commandDir, { recursive: true });
   writeFileSync(dest, content, "utf8");
-  return { dest, skipped: false, verified: toTool.verified };
+
+  // Clean up any legacy locations for this tool (e.g. .kilocode/workflows/steal.md).
+  const removed = [];
+  for (const legacy of toTool.legacyCommandPaths || []) {
+    const p = resolve(project, legacy);
+    if (existsSync(p) && p !== dest) {
+      try {
+        unlinkSync(p);
+        removed.push(p);
+      } catch {
+        /* best effort */
+      }
+    }
+  }
+  return { dest, skipped: false, verified: toTool.verified, removedLegacy: removed };
 }
 
 // Installs both directions of a bridge between two tools.

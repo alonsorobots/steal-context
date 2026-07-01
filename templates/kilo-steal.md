@@ -1,3 +1,7 @@
+---
+description: Steal the latest {{FROM_DISPLAY}} chat context into this Kilo session
+---
+
 Steal the context from my most recent {{FROM_DISPLAY}} chat for this project and continue here.
 
 Do this now, in order:

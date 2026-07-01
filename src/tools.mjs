@@ -17,12 +17,15 @@ export const TOOLS = {
   "kilo-code": {
     source: "kilo-code",
     display: "Kilo Code",
-    // Kilo custom workflows/commands. Path may vary by Kilo version; verify with
-    // `steal-context doctor` and adjust via `--kilo-command-dir` if needed.
-    commandDir: ".kilocode/workflows",
+    // Kilo custom commands (formerly "workflows"), per
+    // https://kilo.ai/docs/customize/workflows: `.kilo/commands/<name>.md`.
+    // Invoke as `/<name>` (filename without `.md`).
+    commandDir: ".kilo/commands",
     commandFile: "steal.md",
     template: "kilo-steal.md",
-    verified: false,
+    verified: true,
+    // Legacy locations Kilo auto-migrated from; we clean these up on install.
+    legacyCommandPaths: [".kilocode/workflows/steal.md", ".kilocode/commands/steal.md"],
   },
 };
 

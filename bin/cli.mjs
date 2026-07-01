@@ -80,6 +80,7 @@ function cmdInit(args) {
     } else {
       const note = r.verified === false ? "  [path unverified — confirm with `doctor`]" : "";
       console.log(`write  ${r.dest}${note}`);
+      for (const p of r.removedLegacy || []) console.log(`remove ${p} (legacy)`);
     }
   }
   console.log(
