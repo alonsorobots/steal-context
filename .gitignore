@@ -1,0 +1,7 @@
+node_modules/
+*.log
+.DS_Store
+
+# steal-context output artifacts
+.steal/
+.continues-handoff.md
