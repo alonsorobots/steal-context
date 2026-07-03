@@ -3,9 +3,15 @@
 // Cursor stores agent transcripts as:
 //   ~/.cursor/projects/<project-slug>/agent-transcripts/<uuid>/<uuid>.jsonl
 // The slug is the project path with the drive letter lowercased and every run of
-// non-alphanumeric characters replaced by "-". Each JSONL line is either
-//   { role: "user"|"assistant", message: { content: [ {type:"text",text} | {type:"tool_use",name,input} | {type:"tool_result",...} ] } }
-// or a control line like { type: "turn_ended", ... }.
+// non-alphanumeric characters replaced by "-". Each JSONL line has the shape
+//   { role: "user"|"assistant", message: { content: [ {type:"text",text} | {type:"tool_use",name,input} ] } }
+//
+// Important caveat: Cursor's local JSONL does NOT persist tool results or
+// thinking/reasoning blocks — only `text` and `tool_use` items appear in
+// content arrays. Tool outputs are materialized server-side at request time
+// and never written to disk. That means we can reconstruct the *actions* the
+// previous agent took, but not the raw *observations* it received. This is a
+// fundamental limitation of the Cursor store, not something we choose to drop.
 
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import os from "node:os";
@@ -73,9 +79,10 @@ function blocksFromContent(content, role) {
       const text = role === "user" ? cleanUserText(c.text) : c.text;
       if (text) blocks.push({ kind: "text", text });
     } else if (c.type === "tool_use") {
-      blocks.push({ kind: "tool", tool: c.name, input: c.input });
+      blocks.push({ kind: "tool", tool: c.name, callId: c.id || null, input: c.input });
     }
-    // tool_result / thinking intentionally skipped for brevity
+    // Cursor's JSONL never contains tool_result or thinking blocks
+    // (see the module header). There is nothing else to extract here.
   }
   return blocks;
 }

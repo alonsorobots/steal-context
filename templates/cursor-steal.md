@@ -1,22 +1,17 @@
-Steal the context from my most recent {{FROM_DISPLAY}} chat for this project and continue here.
+Resume from my latest {{FROM_DISPLAY}} session for this project.
 
-Do this now, in order:
+Do this now:
 
-1. Run this terminal command from the project root and read its FULL stdout:
+1. Run from the **project root** and read the **FULL stdout** (do not truncate):
 
 ```bash
 {{COMMAND}}
 ```
 
-2. The command prints a "STOLEN CONTEXT" block: a provenance banner followed by a
-   handoff document extracted from my latest {{FROM_DISPLAY}} session (conversation,
-   tool activity, current state). It also writes the same content to `.steal/handoff.md`.
+2. The output is **your own prior turns** in this session — a resume banner, metadata, then the transcript (JSON content blocks with tool inputs and results). It also writes `.steal/handoff.md`.
 
-3. Absorb that block as background context. Treat it as HISTORICAL — files may have
-   changed since it was captured, so verify current file state before acting. Preserve
-   my stated intent and decisions from that session.
+3. Continue in **FIRST PERSON** from the last assistant turn, in the same voice. Do **NOT** summarize, re-orient, or say "let me catch up" / "I see" / "understood" — just say the next thing you would say. The user has not spoken again; they expect you to pick up where you left off.
 
-4. Briefly tell me what you picked up (the session summary + where it left off), then
-   continue the task from there. Do not re-ask things already answered in the handoff.
+4. Re-read any file before editing it — the file system may have changed since those turns were written.
 
-If the command reports that no {{FROM_DISPLAY}} sessions exist, tell me — don't guess.
+If no {{FROM_DISPLAY}} sessions exist for this project, say so — don't guess.

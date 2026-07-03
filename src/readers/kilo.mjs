@@ -88,8 +88,30 @@ export function latest(project, { limit = 40 } = {}) {
         }
         if (pd.type === "reasoning" && pd.text) blocks.push({ kind: "reasoning", text: pd.text });
         else if (pd.type === "text" && pd.text) blocks.push({ kind: "text", text: pd.text });
-        else if (pd.type === "tool")
-          blocks.push({ kind: "tool", tool: pd.tool, input: pd.state && pd.state.input });
+        else if (pd.type === "tool") {
+          // A completed tool part carries the exact output the previous model
+          // saw (state.output) plus optional metadata (diff, diagnostics, etc.).
+          // Pending parts have no output yet — record them anyway so the
+          // receiving agent knows the tool was invoked but never returned.
+          const st = pd.state || {};
+          const block = {
+            kind: "tool",
+            tool: pd.tool,
+            callId: pd.callID || null,
+            input: st.input,
+            status: st.status || null,
+          };
+          if (st.output != null) block.result = st.output;
+          if (st.metadata && typeof st.metadata === "object") {
+            // Keep only the parts that are meaningful to a reader — a unified
+            // diff and a truncation hint. Drop bulky per-tool internals.
+            const meta = {};
+            if (st.metadata.diff) meta.diff = st.metadata.diff;
+            if (st.metadata.truncated) meta.truncated = true;
+            if (Object.keys(meta).length) block.resultMeta = meta;
+          }
+          blocks.push(block);
+        }
       }
       if (blocks.length) messages.push({ role, ts: mr.time_created, blocks });
     }
