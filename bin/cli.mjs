@@ -43,7 +43,8 @@ Commands:
   run     Extract the most recent <from> session (scoped to the project) and print a
           resume banner + handoff document to stdout. Also writes .steal/handoff.md.
   init    Install /steal slash commands (default: global — all projects).
-          Pass --local to install into the current repo instead (.cursor/commands, .kilo/commands).
+          Pass --local to install into the current repo when the target tool supports it.
+          Codex installs as a user-level custom prompt invoked with /prompts:steal.
           Global install also runs automatically on "npm install -g steal-context".
   doctor  Show detected tools/slugs (via 'continues scan') and environment checks.
 
@@ -92,9 +93,11 @@ function cmdInit(args) {
   }
   if (global) {
     console.log(
-      `\nDone. /steal is available in every project.` +
+      `\nDone. steal commands are available in every project.` +
         `\n  • Cursor — reload window once if /steal doesn't appear yet` +
         `\n  • Kilo   — start a new chat` +
+        `\n  • Claude — start a new session if /steal doesn't appear yet` +
+        `\n  • Codex  — restart Codex, then invoke /prompts:steal` +
         `\nRunner: "${runner}"`,
     );
   } else {
@@ -102,6 +105,7 @@ function cmdInit(args) {
       `\nDone. /steal installed in this repo.` +
         `\n  • Cursor — reload window if needed` +
         `\n  • Kilo   — start a new chat` +
+        `\n  • Claude — start a new session if needed` +
         `\nRunner: "${runner}"`,
     );
   }

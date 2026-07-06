@@ -21,6 +21,8 @@ export function globalCommandDirFor(toKey) {
   const home = os.homedir();
   if (tool.source === "cursor") return join(home, ".cursor", "commands");
   if (tool.source === "kilo-code") return join(home, ".config", "kilo", "commands");
+  if (tool.source === "claude") return join(home, ".claude", "commands");
+  if (tool.source === "codex") return join(home, ".codex", "prompts");
   return null;
 }
 
@@ -51,6 +53,12 @@ export function installCommand({
   const fromTool = resolveTool(fromKey);
   if (!toTool) throw new Error(`Unknown target tool: "${toKey}".`);
   if (!fromTool) throw new Error(`Unknown source tool: "${fromKey}".`);
+  if (!global && toTool.localSupported === false) {
+    throw new Error(
+      `${toTool.display} does not support project-local slash commands. ` +
+        `Run without --local to install the user-level ${toTool.display} command.`,
+    );
+  }
 
   let commandDir;
   if (global) {
@@ -98,6 +106,20 @@ export function installCommand({
 
 // Installs both directions of a bridge between two tools.
 export function installBridge({ a, b, preset, runner, project, force, global = false }) {
+  const aTool = resolveTool(a);
+  const bTool = resolveTool(b);
+  if (!aTool) throw new Error(`Unknown target tool: "${a}".`);
+  if (!bTool) throw new Error(`Unknown target tool: "${b}".`);
+  if (!global) {
+    for (const tool of [aTool, bTool]) {
+      if (tool.localSupported === false) {
+        throw new Error(
+          `${tool.display} does not support project-local slash commands. ` +
+            `Run without --local to install the user-level ${tool.display} command.`,
+        );
+      }
+    }
+  }
   const results = [];
   results.push(installCommand({ toKey: a, fromKey: b, preset, runner, project, force, global }));
   results.push(installCommand({ toKey: b, fromKey: a, preset, runner, project, force, global }));
