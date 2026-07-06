@@ -39,11 +39,23 @@ Requires **Node.js 22.5+**.
 npm install -g steal-context
 ```
 
-That's it. The installer automatically writes global `/steal` slash commands for **all
-projects** — no per-repo setup, no second command:
+That's it. The installer automatically writes global `/steal` slash commands for the
+default Cursor ⇄ Kilo Code bridge in **all projects** — no per-repo setup, no
+second command:
 
 - `~/.cursor/commands/steal.md` → `/steal` in Cursor pulls from Kilo Code
 - `~/.config/kilo/commands/steal.md` → `/steal` in Kilo pulls from Cursor
+
+To bridge **Claude Code ⇄ Codex** instead:
+
+```bash
+steal-context init --a claude --b codex --force
+```
+
+This writes:
+
+- `~/.claude/commands/steal.md` → `/steal` in Claude Code pulls from Codex
+- `~/.codex/prompts/steal.md` → `/prompts:steal` in Codex pulls from Claude Code
 
 ### First time only (one-time, not per project)
 
@@ -51,8 +63,11 @@ projects** — no per-repo setup, no second command:
 |---|---|---|
 | **Cursor** | `Ctrl+Shift+P` → **Developer: Reload Window** | Cursor picks up new global commands after a reload |
 | **Kilo Code** | Start a **new chat** | Kilo loads custom commands at session start |
+| **Claude Code** | Start a **new session** if `/steal` does not appear | Claude loads custom commands when sessions initialize |
+| **Codex** | Restart Codex, then type `/prompts:steal` | Codex loads custom prompts at session start |
 
-After that, open any project and type **`/steal`**.
+After that, open any project and type **`/steal`** in Cursor, Kilo Code, or
+Claude Code. In Codex, type **`/prompts:steal`**.
 
 ### Optional
 
@@ -80,7 +95,9 @@ directly — no global index, no multi-minute rebuild:
 |---|---|---|
 | Kilo Code | direct SQLite query | `~/.local/share/kilo/kilo.db` |
 | Cursor | direct JSONL read | `~/.cursor/projects/<slug>/agent-transcripts/<id>/<id>.jsonl` |
-| any of 14 other tools | via [`continues`](https://github.com/yigitkonur/cli-continues) (fallback) | — |
+| Claude Code | via [`continues`](https://github.com/yigitkonur/cli-continues) (fallback) | `~/.claude/projects/...` |
+| Codex | via [`continues`](https://github.com/yigitkonur/cli-continues) (fallback) | `~/.codex/sessions/...` |
+| other supported tools | via [`continues`](https://github.com/yigitkonur/cli-continues) (fallback) | — |
 
 For any other tool, it falls back to [`continues`](https://github.com/yigitkonur/cli-continues)
 (MIT), which knows how to parse all 16 supported agents. The receiving agent reads
@@ -133,6 +150,7 @@ handoff fidelity, regardless of format:
 |---|---|---|---|---|
 | **Kilo Code** | ✅ | ✅ | ✅ (incl. unified diffs) | ✅ |
 | **Cursor**    | ✅ | ✅ | ❌ *(not persisted locally — materialized server-side)* | ❌ *(not persisted)* |
+| **Claude Code / Codex via `continues`** | ✅ | parser-dependent | parser-dependent | parser-dependent |
 
 So a `kilo-code → cursor` handoff carries the previous agent's actual
 observations, while `cursor → kilo-code` carries the previous agent's actions
@@ -144,12 +162,12 @@ Cursor's on-disk format, not of `steal-context`.
 | Command | What it does |
 |---|---|
 | `steal-context run` | Extract the latest `--from` session (scoped to the current project) and print resume banner + handoff to stdout. Also writes `.steal/handoff.md`. |
-| `steal-context init` | Install `/steal` slash commands. **Default: global** (all projects). `--local` for repo-only. Runs automatically on `npm install -g`. |
+| `steal-context init` | Install `/steal` slash commands. **Default: global** (all projects). `--local` for repo-only where supported. Runs automatically on `npm install -g` for the default Cursor ⇄ Kilo bridge. |
 | `steal-context doctor` | Show detected tools/slugs (`continues scan`) + environment checks. |
 
 ### `init` flags
 
-- `--local` install into the current repo (`.cursor/commands`, `.kilo/commands`) instead of globally
+- `--local` install into the current repo (`.cursor/commands`, `.kilo/commands`, `.claude/commands`) instead of globally. Codex custom prompts are user-level only, so Codex bridges must be installed globally.
 - `--a` / `--b` pick the two tools (default: cursor ⇄ kilo-code)
 - `--preset` bake a preset into the slash command (default: verbose at run time)
 - `--force` overwrite existing command files (use after upgrades to pick up template changes)
@@ -163,21 +181,29 @@ Cursor's on-disk format, not of `steal-context`.
 - `--format <markdown|json>` handoff shape (default `markdown`). `json` gives
   the receiving model verbatim tool inputs/outputs — highest fidelity, but only
   the direct readers (Cursor, Kilo Code) produce it; `continues` fallback
-  targets always emit markdown.
+  sources always emit markdown.
 - `--project <dir>` project to scope sessions to (default: cwd)
 - `--out <file>` where to write the handoff (default `.steal/handoff.md`)
 
 ## Configuring a different pair of tools
 
-`steal-context` piggybacks on `continues`' 16-tool support. Find valid slugs with
-`steal-context doctor`, then:
+`steal-context run` piggybacks on `continues`' 16-tool support. Find valid slugs
+with `steal-context doctor`, then:
 
 ```bash
-steal-context init --local --a cursor --b cline
+steal-context run --from claude --to codex
 ```
 
-Currently only `cursor` and `kilo-code` use the fast direct reader; other pairs
-route through `continues` (still works, just slower on a cold cache).
+`steal-context init` can install commands for tools whose command locations are
+known: `cursor`, `kilo-code`, `claude`, and `codex`.
+
+```bash
+steal-context init --a claude --b codex
+```
+
+Currently only `cursor` and `kilo-code` use the fast direct reader; `claude`,
+`codex`, and other supported sources route through `continues` (still works,
+just slower on a cold cache).
 
 ## Why not just use `continues`?
 

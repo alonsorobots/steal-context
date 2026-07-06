@@ -27,6 +27,26 @@ export const TOOLS = {
     // Legacy locations Kilo auto-migrated from; we clean these up on install.
     legacyCommandPaths: [".kilocode/workflows/steal.md", ".kilocode/commands/steal.md"],
   },
+  claude: {
+    source: "claude",
+    display: "Claude Code",
+    // Claude Code custom commands: `.claude/commands/<name>.md`, invoked as `/<name>`.
+    commandDir: ".claude/commands",
+    commandFile: "steal.md",
+    template: "claude-steal.md",
+    verified: true,
+  },
+  codex: {
+    source: "codex",
+    display: "Codex",
+    // Codex custom prompts live in the user Codex home and are invoked as
+    // `/prompts:<name>`. Repo-local Codex workflows should use skills instead.
+    commandDir: ".codex/prompts",
+    commandFile: "steal.md",
+    template: "codex-steal.md",
+    verified: true,
+    localSupported: false,
+  },
 };
 
 export function resolveTool(key) {
