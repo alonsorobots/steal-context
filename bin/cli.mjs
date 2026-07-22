@@ -8,8 +8,8 @@ process.on("warning", (w) => {
 
 import { runContinues, hasLocalContinues, CONTINUES_VERSION } from "../src/continues.mjs";
 import { steal, PRESETS, FORMATS } from "../src/steal.mjs";
-import { installBridge } from "../src/install.mjs";
-import { DEFAULT_FROM, DEFAULT_TO, TOOLS } from "../src/tools.mjs";
+import { installAllCommands, installBridge } from "../src/install.mjs";
+import { AUTO, DEFAULT_FROM, DEFAULT_TO, TOOLS } from "../src/tools.mjs";
 
 function parseArgs(argv) {
   const args = { _: [] };
@@ -31,25 +31,34 @@ function parseArgs(argv) {
   return args;
 }
 
-const HELP = `steal-context — pull the latest chat context from your OTHER AI coding tool.
+const HELP = `steal-context — pull chat context from your OTHER AI coding tool(s).
 
-Usage:
-  steal-context run   [--from <tool>] [--to <tool>] [--preset <p>] [--format <f>] [--project <dir>] [--out <file>]
-  steal-context init  [--a <tool>] [--b <tool>] [--preset <p>] [--runner <cmd>] [--local] [--force]
+In-chat (after install):
+  /steal                 auto — other tool you messaged most recently on this project
+  /steal kilo|k          force Kilo Code
+  /steal claude|cc       force Claude Code
+  /steal cursor|c        force Cursor
+
+CLI:
+  steal-context run   [--from <tool>|auto] [--to <tool>] [--preset <p>] [--format <f>] [--project <dir>] [--out <file>]
+  steal-context init  [--only <tool1,tool2,...>] [--a <tool> --b <tool>] [--preset <p>] [--runner <cmd>] [--local] [--force]
   steal-context doctor
   steal-context help
 
 Commands:
   run     Extract the most recent <from> session (scoped to the project) and print a
           resume banner + handoff document to stdout. Also writes .steal/handoff.md.
-  init    Install /steal slash commands (default: global — all projects).
-          Pass --local to install into the current repo instead (.cursor/commands, .kilo/commands).
-          Global install also runs automatically on "npm install -g steal-context".
+          --from auto ranks by last human turn (not agent store mtime).
+  init    Install /steal slash commands (default: global — all projects, all known
+          tools). Pass --only cursor,claude-code to limit which tools. Pass --force
+          after upgrades to refresh templates. Pass --local for the current repo.
+          Global install also runs on "npm install -g steal-context".
   doctor  Show detected tools/slugs (via 'continues scan') and environment checks.
 
 Presets (context budget): ${PRESETS.join(", ")}
 Formats:                  ${FORMATS.join(", ")}  (json = structured content-block dump; markdown = human-readable)
-Known tools:              ${Object.keys(TOOLS).join(", ")}
+Known tools:              ${Object.keys(TOOLS).join(", ")}  (--from ${AUTO} picks among whichever of these are installed)
+Aliases:                  kilo|k, claude|cc, cursor|c  (also work with CLI --from)
 
 Powered by 'continues' (${CONTINUES_VERSION}, MIT). https://github.com/yigitkonur/cli-continues
 `;
@@ -69,17 +78,7 @@ function cmdRun(args) {
   );
 }
 
-function cmdInit(args) {
-  const a = args.a || DEFAULT_TO; // cursor
-  const b = args.b || DEFAULT_FROM; // kilo-code
-  const preset = typeof args.preset === "string" ? args.preset : "";
-  const runner = typeof args.runner === "string" ? args.runner : "steal-context";
-  const project = typeof args.project === "string" ? args.project : process.cwd();
-  const force = Boolean(args.force);
-  // Global is the default. --local opts into per-repo commands.
-  const global = !Boolean(args.local);
-
-  const results = installBridge({ a, b, preset, runner, project, force, global });
+function reportInstall(results, { global, runner }) {
   for (const r of results) {
     if (r.skipped) {
       console.log(`skip   ${r.dest} (exists; use --force to overwrite)`);
@@ -90,21 +89,40 @@ function cmdInit(args) {
       for (const p of r.removedLegacy || []) console.log(`remove ${p} (legacy)`);
     }
   }
-  if (global) {
-    console.log(
-      `\nDone. /steal is available in every project.` +
-        `\n  • Cursor — reload window once if /steal doesn't appear yet` +
-        `\n  • Kilo   — start a new chat` +
-        `\nRunner: "${runner}"`,
-    );
-  } else {
-    console.log(
-      `\nDone. /steal installed in this repo.` +
-        `\n  • Cursor — reload window if needed` +
-        `\n  • Kilo   — start a new chat` +
-        `\nRunner: "${runner}"`,
-    );
+  const scopeMsg = global
+    ? `\nDone. /steal is available in every project.`
+    : `\nDone. /steal installed in this repo.`;
+  console.log(
+    `${scopeMsg}\n` +
+      `  • Try /steal or /steal kilo|claude|cursor\n` +
+      `  • Reload/restart each tool once if /steal doesn't appear yet.\n` +
+      `  Runner: "${runner}"`,
+  );
+}
+
+function cmdInit(args) {
+  const preset = typeof args.preset === "string" ? args.preset : "";
+  const runner = typeof args.runner === "string" ? args.runner : "steal-context";
+  const project = typeof args.project === "string" ? args.project : process.cwd();
+  const force = Boolean(args.force);
+  // Global is the default. --local opts into per-repo commands.
+  const global = !Boolean(args.local);
+
+  if (args.a || args.b) {
+    // Legacy explicit two-tool pairing.
+    const a = args.a || DEFAULT_TO;
+    const b = args.b || DEFAULT_FROM;
+    const results = installBridge({ a, b, preset, runner, project, force, global });
+    reportInstall(results, { global, runner });
+    return;
   }
+
+  const tools =
+    typeof args.only === "string"
+      ? args.only.split(",").map((s) => s.trim()).filter(Boolean)
+      : Object.keys(TOOLS);
+  const results = installAllCommands({ tools, preset, runner, project, force, global });
+  reportInstall(results, { global, runner });
 }
 
 function cmdDoctor() {
@@ -117,6 +135,7 @@ function cmdDoctor() {
     process.stderr.write((res.stderr || "") + `\n(scan exited ${res.status})\n`);
   }
   console.log(`\nThe left-column slugs above are valid values for --from/--to.`);
+  console.log(`Tools with a direct reader (used by --from ${AUTO}): ${Object.keys(TOOLS).join(", ")}`);
 }
 
 async function main() {

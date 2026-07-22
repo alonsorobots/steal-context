@@ -1,18 +1,22 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { runContinues } from "./continues.mjs";
-import { resolveTool } from "./tools.mjs";
+import { AUTO, TOOLS, resolveTool } from "./tools.mjs";
 import { renderHandoff, renderHandoffJson, PRESET_LIMITS } from "./format.mjs";
 import * as kilo from "./readers/kilo.mjs";
 import * as cursor from "./readers/cursor.mjs";
+import * as claudeCode from "./readers/claude-code.mjs";
 
 export const PRESETS = Object.keys(PRESET_LIMITS);
 export const FORMATS = ["markdown", "json"];
 
-// Tools we can read directly (fast path, no global index rebuild).
+// Tools we can read directly (fast path, no global index rebuild). Keyed by
+// each reader's own `SOURCE` export, which matches a `TOOLS` registry key —
+// this is also the set of tools `--from auto` considers.
 const DIRECT_READERS = {
   "kilo-code": kilo,
   cursor: cursor,
+  "claude-code": claudeCode,
 };
 
 // Large-context frontier models on both sides (Opus 4.8, GLM 5.2, etc.) easily
@@ -70,7 +74,45 @@ function stealDirect({ reader, project, preset, format }) {
   return { session: sess, body: render(sess, preset), engine: "direct reader" };
 }
 
-// Fallback: use the `continues` engine (any of its 16 tools).
+// Rank by last *human* turn when available. Session store mtimes / row
+// `time_updated` keep advancing while an agent is still writing after the
+// user has already switched tools (Claude Code tool_result rows alone will
+// bump JSONL mtime). Comparing those makes a still-running agent win over
+// the tool the human actually moved to — the bug `/steal` hit in practice.
+function interactionTime(session) {
+  const userAt = Number(session && session.lastUserAt);
+  if (Number.isFinite(userAt) && userAt > 0) return userAt;
+  return Number(session && session.updatedAt) || 0;
+}
+
+// `--from auto`: consider every registered tool *other than* the
+// destination that (a) has a direct reader and (b) is actually installed on
+// this machine (`available()`), read each one's latest session for this
+// project, and pick whichever the human used most recently. This is what
+// lets the set of bridgeable tools grow (more readers = more auto
+// candidates) without any caller needing to know how many tools exist or
+// name one explicitly — the whole point of `auto` once there are more than
+// two.
+function resolveAutoFrom({ toSource, project, preset, format }) {
+  let best = null;
+  for (const tool of Object.values(TOOLS)) {
+    if (tool.source === toSource) continue; // never steal from the destination itself
+    const reader = DIRECT_READERS[tool.source];
+    if (!reader || !reader.available()) continue;
+    const stolen = stealDirect({ reader, project, preset, format });
+    if (!stolen) continue;
+    const at = interactionTime(stolen.session);
+    if (!best || at > best.at) {
+      best = { fromTool: tool, result: stolen, at };
+    }
+  }
+  return best;
+}
+
+// Fallback: use the `continues` engine (any of its 16 tools). Only used for
+// an explicit `--from <tool>` that has no direct reader — `auto` is scoped
+// to direct readers only, since availability/recency can't be cheaply
+// checked through the continues CLI without an extra process per candidate.
 function stealViaContinues({ fromSource, project, preset }) {
   const list = runContinues(["list", "--source", fromSource, "--json", "-n", "50"]);
   if (list.status !== 0) {
@@ -110,7 +152,6 @@ function stealViaContinues({ fromSource, project, preset }) {
 }
 
 export function steal({ from, to, preset, format, project = process.cwd(), out } = {}) {
-  const fromTool = resolveTool(from) || { source: from, display: from };
   const toTool = resolveTool(to) || { source: to || "unknown", display: to || "the current tool" };
 
   const chosenPreset = preset || defaultPresetFor(toTool.source);
@@ -122,18 +163,39 @@ export function steal({ from, to, preset, format, project = process.cwd(), out }
     throw new Error(`Invalid format "${chosenFormat}". Choose one of: ${FORMATS.join(", ")}.`);
   }
 
-  const reader = DIRECT_READERS[fromTool.source];
+  let fromTool;
   let result = null;
-  if (reader && reader.available()) {
-    result = stealDirect({ reader, project, preset: chosenPreset, format: chosenFormat });
+
+  if (String(from).toLowerCase() === AUTO) {
+    const picked = resolveAutoFrom({ toSource: toTool.source, project, preset: chosenPreset, format: chosenFormat });
+    if (picked) {
+      fromTool = picked.fromTool;
+      result = picked.result;
+    } else {
+      const others = Object.values(TOOLS)
+        .filter((t) => t.source !== toTool.source)
+        .map((t) => t.display)
+        .join(", ");
+      throw new Error(
+        `--from auto found no sessions for this project in any other known tool (${others}). ` +
+          `Have you used one of them here yet?`,
+      );
+    }
+  } else {
+    fromTool = resolveTool(from) || { source: from, display: from };
+    const reader = DIRECT_READERS[fromTool.source];
+    if (reader && reader.available()) {
+      result = stealDirect({ reader, project, preset: chosenPreset, format: chosenFormat });
+    }
+    if (!result) {
+      // The `continues` fallback only emits markdown. Warn if the caller asked
+      // for JSON on a tool that doesn't have a direct reader — we still return
+      // usable output, but it won't be structured.
+      result = stealViaContinues({ fromSource: fromTool.source, project, preset: chosenPreset });
+      if (chosenFormat === "json" && result) result.engine += " (json unavailable — markdown fallback)";
+    }
   }
-  if (!result) {
-    // The `continues` fallback only emits markdown. Warn if the caller asked
-    // for JSON on a tool that doesn't have a direct reader — we still return
-    // usable output, but it won't be structured.
-    result = stealViaContinues({ fromSource: fromTool.source, project, preset: chosenPreset });
-    if (chosenFormat === "json" && result) result.engine += " (json unavailable — markdown fallback)";
-  }
+
   if (!result) {
     throw new Error(
       `No ${fromTool.display} sessions found for this project. Have you used ${fromTool.display} here yet?`,

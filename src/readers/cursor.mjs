@@ -116,6 +116,12 @@ export function latest(project, { limit = 40 } = {}) {
 
   const trimmed = messages.slice(-Math.max(1, Math.min(limit, 500)));
 
+  // Cursor's local JSONL does not persist per-message timestamps, so the
+  // best available proxy for last human interaction is the transcript mtime
+  // whenever the session contains at least one user turn.
+  const hasUser = messages.some((m) => m.role === "user");
+  const lastUserAt = hasUser ? t.mtime : null;
+
   return {
     source: SOURCE,
     display: DISPLAY,
@@ -123,6 +129,7 @@ export function latest(project, { limit = 40 } = {}) {
     title: title || basename(projectDir),
     model: "cursor-agent",
     updatedAt: t.mtime,
+    lastUserAt,
     directory: project,
     originalPath: t.file,
     messages: trimmed,

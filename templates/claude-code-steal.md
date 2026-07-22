@@ -1,6 +1,7 @@
 ---
 description: Resume from another AI coding tool (/steal or /steal kilo|claude|cursor)
 argument-hint: [kilo|claude|cursor]
+allowed-tools: Bash({{RUNNER}} *)
 ---
 
 Resume from my most recent session in another AI coding tool.
@@ -20,16 +21,15 @@ Do this now:
 
 2. Run from the **project root** and read the **FULL stdout** (do not truncate).
    Start from this command and **only** replace the `--from` value with what you resolved
-   (leave `--to` / `--format` / flags untouched):
+   (leave `--to` / other flags untouched):
 
 ```bash
 {{COMMAND}}
 ```
 
 3. The output is **your own prior turns** from that source — a resume banner naming the
-   source, metadata, then the transcript (JSON content blocks with tool inputs and results).
-   It also writes `.steal/handoff.md`. With `auto`, it picks whichever *other* tool you
-   messaged most recently on this project.
+   source, metadata, then the transcript. It also writes `.steal/handoff.md`. With `auto`,
+   it picks whichever *other* tool you messaged most recently on this project.
 
 4. Continue in **FIRST PERSON** from the last assistant turn, in the same voice. Do **NOT**
    summarize, re-orient, or say "let me catch up" / "I see" / "understood" — just say the

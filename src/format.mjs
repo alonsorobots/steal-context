@@ -1,12 +1,14 @@
 // Shared formatter: turns a normalized session into a handoff document.
 //
 // Normalized session shape:
-//   { source, display, id, title, model, updatedAt, directory,
+//   { source, display, id, title, model, updatedAt, lastUserAt?, directory,
 //     messages: [ { role, ts, blocks: [
 //         {kind:"text", text}
 //       | {kind:"reasoning", text}
 //       | {kind:"tool", tool, callId?, input, status?, result?, resultMeta?}
 //     ] } ] }
+// `updatedAt` is last store write (mtime / row time_updated). `lastUserAt`
+// is the last real human turn in ms (preferred by `--from auto` ranking).
 //
 // Two output formats are supported:
 //   - "markdown" (default) — human-readable, well-suited to paste-into-chat.
@@ -77,9 +79,14 @@ function sessionHeaderRows(sess, shown, omitted) {
     `| **Model** | ${sess.model || "unknown"} |`,
     `| **Project** | ${sess.directory || "unknown"} |`,
     `| **Last active** | ${fmtTime(sess.updatedAt)} |`,
+  ];
+  if (sess.lastUserAt) {
+    rows.push(`| **Last human turn** | ${fmtTime(sess.lastUserAt)} |`);
+  }
+  rows.push(
     `| **Session ID** | \`${sess.id}\` |`,
     `| **Messages shown** | ${shown}${omitted > 0 ? ` (of ${shown + omitted}; ${omitted} older omitted)` : ""} |`,
-  ];
+  );
   return ["| Field | Value |", "|-------|-------|", ...rows];
 }
 

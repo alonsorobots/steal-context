@@ -1,7 +1,7 @@
 {
   "name": "steal-context",
-  "version": "0.1.2",
-  "description": "Type /steal in one AI coding chat to pull the latest conversation context from the OTHER tool (e.g. Cursor <-> Kilo Code). A thin, model-aware UX layer on top of `continues`.",
+  "version": "0.2.0",
+  "description": "Type /steal (or /steal kilo|claude|cursor) in any AI coding chat to pull conversation context from another tool. Auto-picks by last human turn across Cursor, Kilo Code, Claude Code, ....",
   "type": "module",
   "bin": {
     "steal-context": "bin/cli.mjs",
@@ -17,7 +17,8 @@
   ],
   "scripts": {
     "doctor": "node bin/cli.mjs doctor",
-    "postinstall": "node scripts/postinstall.mjs"
+    "postinstall": "node scripts/postinstall.mjs",
+    "test": "node --test test/*.test.mjs"
   },
   "engines": {
     "node": ">=22.5.0"
@@ -30,6 +31,7 @@
     "coding-agent",
     "cursor",
     "kilo-code",
+    "claude-code",
     "glm",
     "glm-4-6",
     "glm-5",

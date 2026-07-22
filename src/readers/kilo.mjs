@@ -69,6 +69,28 @@ export function latest(project, { limit = 40 } = {}) {
       "SELECT data FROM part WHERE message_id = ? ORDER BY time_created ASC",
     );
 
+    // Last human turn for `--from auto` ranking. Queried separately so a
+    // short message window (all-assistant tail) can't hide a recent user turn.
+    let lastUserAt = null;
+    const recentForUser = db
+      .prepare(
+        "SELECT time_created, data FROM message WHERE session_id = ? ORDER BY time_created DESC LIMIT 100",
+      )
+      .all(match.id);
+    for (const ur of recentForUser) {
+      let md = {};
+      try {
+        md = JSON.parse(ur.data);
+      } catch {
+        /* skip */
+      }
+      if (md.role === "user") {
+        const n = Number(ur.time_created);
+        if (Number.isFinite(n) && n > 0) lastUserAt = n;
+        break;
+      }
+    }
+
     const messages = [];
     for (const mr of msgRows) {
       let md = {};
@@ -123,6 +145,7 @@ export function latest(project, { limit = 40 } = {}) {
       title: match.title,
       model: parseModel(match.model),
       updatedAt: match.time_updated,
+      lastUserAt,
       directory: match.directory,
       originalPath: path,
       messages,
