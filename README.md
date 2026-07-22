@@ -184,6 +184,13 @@ source tool's on-disk format, not a steal-context limitation.
 Auto ranks by last *human* message. If two chats are close in time, pin the
 source: `/steal kilo`, `/steal claude`, or `/steal cursor`.
 
+**`/steal k` was treated as auto.**  
+Older templates mentioned `$ARGUMENTS` in the “empty → auto” rule; Cursor
+substitutes that token *everywhere*, so `/steal k` rewrote the rule into
+“if literal `k` → auto”. Fixed templates put the arg only in
+`<source-arg>$ARGUMENTS</source-arg>`. Run `steal-context init --force` and
+reload the tool if you still see the old wording.
+
 **I upgraded and `/steal` still looks old.**  
 Run `steal-context init --force`, then reload/restart the tool.
 

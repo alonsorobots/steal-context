@@ -6,18 +6,21 @@ allowed-tools: Bash({{RUNNER}} *)
 
 Resume from my most recent session in another AI coding tool.
 
-**Slash args (optional source):** `$ARGUMENTS`
+<source-arg>$ARGUMENTS</source-arg>
 
 Do this now:
 
-1. Resolve `--from` from the slash args above:
-   - Empty / whitespace / the literal text `$ARGUMENTS` → use `auto`
+1. Resolve `--from` from the `<source-arg>` element above (hosts substitute the
+   slash-command arguments into that element only):
+   - If `<source-arg>` is empty / whitespace-only → use `auto`
    - Otherwise take the **first** whitespace-separated token (case-insensitive) and map:
      - `kilo` / `k` / `kilocode` / `kilo-code` → `kilo-code`
      - `claude` / `cc` / `claude-code` → `claude-code`
      - `cursor` / `c` → `cursor`
      - `auto` → `auto`
    - Anything else → stop and say the source was unrecognized (do not guess)
+   - Important: a value like `k` or `kilo` is a real pin — never treat a non-empty
+     `<source-arg>` as `auto`.
 
 2. Run from the **project root** and read the **FULL stdout** (do not truncate).
    Start from this command and **only** replace the `--from` value with what you resolved

@@ -90,9 +90,15 @@ export function resolveTool(key) {
 }
 
 // Resolve the optional `/steal <args>` payload into a `--from` value.
-// Returns `{ from, error? }`. Empty / literal `$ARGUMENTS` → auto.
+// Returns `{ from, error? }`. Empty → auto.
+//
+// Note: slash-command hosts substitute `$ARGUMENTS` *everywhere* in the
+// template, so templates must mention that token only inside `<source-arg>`
+// (never in "if literal $ARGUMENTS → auto" instructions — that rewrites the
+// rule into "if literal k → auto" when the user typed `/steal k`).
 export function resolveFromArgs(raw) {
   const text = raw == null ? "" : String(raw).trim();
+  // Hosts that fail to substitute leave the token intact; treat as empty.
   if (!text || text === "$ARGUMENTS" || text === "${ARGUMENTS}") {
     return { from: AUTO };
   }
